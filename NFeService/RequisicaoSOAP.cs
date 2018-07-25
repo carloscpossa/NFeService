@@ -19,10 +19,7 @@ namespace NFeService
 
         private async Task<string> RequisicaoLTS(string xml, string SOAPAction, string requestUri, string serialCertificado)
         {
-            //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3;
-
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
+            
             try
             {
                 var certificado = CertificadoDigital.ObtemCertificadoDigital(serialCertificado);
@@ -32,14 +29,19 @@ namespace NFeService
 
                 var content = new StringContent(xml, Encoding.UTF8, "text/xml");
 
-                HttpClient client = new HttpClient(handler);
-                client.DefaultRequestHeaders.Add("SOAPAction", SOAPAction);
+                using (HttpClient client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("SOAPAction", SOAPAction);
 
-                var resposta = await client.PostAsync(requestUri, content);
-
-                var resp = await resposta.Content.ReadAsStringAsync();
-
-                return resp;
+                    using (var resposta = await client.PostAsync(requestUri, content))
+                    {
+                        using (var conteudoResposta = resposta.Content)
+                        {
+                            var resp = await conteudoResposta.ReadAsStringAsync();
+                            return resp;
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
